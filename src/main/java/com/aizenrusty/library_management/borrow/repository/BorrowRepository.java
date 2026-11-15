@@ -12,4 +12,6 @@ public interface BorrowRepository extends JpaRepository<Borrow,Long> {
     boolean existsByUserIdAndBookIdAndStatus(Long userId, Long bookId, Borrow.Status status);
 
     List<Borrow> findByUserId(Long userId);
+
+    boolean existsByUserIdAndFinePaidFalse(Long userId);
 }

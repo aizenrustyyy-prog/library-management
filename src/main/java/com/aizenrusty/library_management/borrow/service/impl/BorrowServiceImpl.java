@@ -8,17 +8,20 @@ import com.aizenrusty.library_management.borrow.entity.Borrow;
 import com.aizenrusty.library_management.borrow.repository.BorrowRepository;
 import com.aizenrusty.library_management.borrow.service.BorrowService;
 import com.aizenrusty.library_management.exception.GlobalExceptionHandler;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import static java.time.temporal.ChronoUnit.DAYS;
 
 
 @Service
 public class BorrowServiceImpl implements BorrowService {
 
-
+    @Value("${library.fine.per-day}")
+    private BigDecimal finePerDay;
     private final BorrowRepository borrowRepository;
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
@@ -45,6 +48,11 @@ public class BorrowServiceImpl implements BorrowService {
         if(borrowRepository.countByUserIdAndStatus(userId, Borrow.Status.ISSUED) >= 3) {
             throw new GlobalExceptionHandler.ResourceNotFoundException("User has already borrowed maximum number of books");
         }
+
+        if (borrowRepository.existsByUserIdAndFinePaidFalse(userId)) {
+            throw new RuntimeException("Please pay your pending fine before borrowing");
+        }
+
         Borrow borrow = new Borrow();
         borrow.setBook(book);
         borrow.setUser(user);
@@ -52,6 +60,7 @@ public class BorrowServiceImpl implements BorrowService {
         borrow.setDueDate(LocalDate.now().plusDays(14));
         borrow.setStatus(Borrow.Status.ISSUED);
         book.setAvailableCopies(book.getAvailableCopies() - 1);
+        borrow.setFinePaid(false);
         borrowRepository.save(borrow);
     }
 
@@ -66,6 +75,16 @@ public class BorrowServiceImpl implements BorrowService {
         borrow.setStatus(Borrow.Status.RETURNED);
         Book book = borrow.getBook();
         book.setAvailableCopies(book.getAvailableCopies() + 1);
+        LocalDate today = LocalDate.now();
+        if (today.isAfter(borrow.getDueDate())) {
+            long daysLate = DAYS.between(borrow.getDueDate(), today);
+            BigDecimal fine = finePerDay.multiply(BigDecimal.valueOf(daysLate));
+            borrow.setFineAmount(fine);
+            borrow.setFinePaid(false);
+        } else {
+            borrow.setFineAmount(BigDecimal.ZERO);
+            borrow.setFinePaid(true);
+        }
         borrowRepository.save(borrow);
     }
 
@@ -74,4 +93,17 @@ public class BorrowServiceImpl implements BorrowService {
         return borrowRepository.findByUserId(userId);
     }
 
+    @Override
+    @Transactional
+    public void payFine(Long id) {
+        Borrow borrow = borrowRepository.findById(id).orElseThrow(() -> new RuntimeException("No Fine Found"));
+        if(borrow.getFineAmount() == null || borrow.getFineAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("No Fine Found");
+        }
+        if(borrow.isFinePaid()) {
+            throw new RuntimeException("Fine already paid");
+        }
+        borrow.setFinePaid(true);
+        borrowRepository.save(borrow);
+    }
 }

@@ -11,4 +11,6 @@ public interface BorrowService {
     void returnBook(Long id);
 
     List<Borrow> getBorrowingsByUserId(Long userId);
+
+    void payFine(Long id);
 }

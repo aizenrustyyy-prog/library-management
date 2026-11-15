@@ -63,7 +63,7 @@ public class Users {
         this.address = address;
     }
 
-    @Column(nullable = false, length = 64)
+    @Column(nullable = false, length = 100)
     private String password;
 
     @Enumerated(EnumType.STRING)

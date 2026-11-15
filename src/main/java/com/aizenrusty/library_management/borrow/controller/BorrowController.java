@@ -36,4 +36,10 @@ public class BorrowController {
         return ResponseEntity.ok(ApiResponse.success(borrowings));
     }
 
+    @PutMapping("/pay-fine/{id}")
+    public ResponseEntity<ApiResponse<String>> payFine(@PathVariable Long id) {
+        borrowService.payFine(id);
+        return ResponseEntity.ok(ApiResponse.success("Fine paid successfully"));
+    }
+
 }

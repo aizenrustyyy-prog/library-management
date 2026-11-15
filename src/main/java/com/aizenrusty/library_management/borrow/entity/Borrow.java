@@ -4,6 +4,7 @@ import com.aizenrusty.library_management.book.entity.Book;
 import com.aizenrusty.library_management.book.entity.Users;
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -33,6 +34,28 @@ public class Borrow {
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private Status status;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal fineAmount;
+
+    public boolean isFinePaid() {
+        return finePaid;
+    }
+
+    public void setFinePaid(boolean finePaid) {
+        this.finePaid = finePaid;
+    }
+
+    public BigDecimal getFineAmount() {
+        return fineAmount;
+    }
+
+    public void setFineAmount(BigDecimal fineAmount) {
+        this.fineAmount = fineAmount;
+    }
+
+    @Column(nullable = false)
+    private boolean finePaid;
 
     public enum Status{
         ISSUED, RETURNED;
